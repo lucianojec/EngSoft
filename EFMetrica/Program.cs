@@ -21,6 +21,10 @@ namespace EFMetrica
 
 
             Conexao.ConectaSonar();
+            var flagAnalise = true;
+            var flag = true;
+            string analise_id = string.Empty;
+            string analise_id2 = string.Empty;
             foreach (var engproject in engprojects)
             {
                 IEnumerable<SonarProject> projects = Conexao.ConnSonar.Query<SonarProject>("select " +
@@ -38,9 +42,14 @@ namespace EFMetrica
                                                                                            " where projects.id = " + engproject.sonar_id +
                                                                                            "   and projects.tags like '%#saj6%' " +
                                                                                            " order by build_date, analysis_uuid, project_measures.metric_id ");
-                var flag = true;
-                string analise_id = string.Empty;
-                string analise_id2 = projects.FirstOrDefault().analysis_uuid;
+
+
+                if (flagAnalise)
+                {
+                    analise_id2 = projects.FirstOrDefault().analysis_uuid;
+                }
+                flagAnalise = false;
+
 
                 foreach (var project in projects)
                 {
@@ -54,9 +63,13 @@ namespace EFMetrica
                             Conexao.ConnEng.Execute("Insert into project_metrics (project_id, Executed_at, Analysis_id, coverage, lines, lines_to_cover, uncovered_lines)" +
                                                                         " Values(@project_id, @Executed_at, @Analysis_id, @Coverage, @lines, @lines_to_cover, @uncovered_lines)", parametros);
                             Conexao.DesconectaEng();
-                            flag = true;
+                            
                         }
+                        flag = true;
                     }
+
+                    if (engproject.project_id == 2677)
+                        flag = flag;
 
                     parametros.Add("project_id", engproject.project_id, DbType.Int32);
                     parametros.Add("Executed_at", TimeStampToDateTime(project.build_date), DbType.DateTime);
@@ -78,6 +91,8 @@ namespace EFMetrica
                             break;
                     }
 
+                    if (project.analysis_uuid == null)
+                        flag = false;
 
                     foreach (var projectMetric in projectsMetrics)
                     {
@@ -85,7 +100,7 @@ namespace EFMetrica
                             flag = false;
 
                     }
-
+                    
                     analise_id2 = project.analysis_uuid;
 
                 }
