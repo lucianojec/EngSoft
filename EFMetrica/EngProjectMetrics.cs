@@ -10,7 +10,7 @@ namespace EFMetrica
         public string Analysis_id { get; set; }
         public double Coverage { get; set; }
         public List<Measure> measures { get; set; }
-        
+
     }
 
     public class Measure

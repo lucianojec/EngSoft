@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Net;
+using System.Net.Mail;
 
 namespace EFMetrica
 {
@@ -10,106 +12,152 @@ namespace EFMetrica
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Iniciando Migração de dados");
-
-            var parametros = new DynamicParameters();
-
-            Conexao.ConectaEng();
-            IEnumerable<EngProject> engprojects = Conexao.ConnEng.Query<EngProject>("select project_id, sonar_id from projects where sonar_key <> ''");
-            IEnumerable<EngProjectMetrics> projectsMetrics = Conexao.ConnEng.Query<EngProjectMetrics>("select * from project_metrics");
-            Conexao.DesconectaEng();
-
-
-            Conexao.ConectaSonar();
-            var flagAnalise = true;
-            var flag = true;
-            string analise_id = string.Empty;
-            string analise_id2 = string.Empty;
-            foreach (var engproject in engprojects)
+            try
             {
-                IEnumerable<SonarProject> projects = Conexao.ConnSonar.Query<SonarProject>("select " +
-                                                                                           "    projects.id, projects.kee, projects.name," +
-                                                                                           "    snapshots.build_date, project_measures.analysis_uuid, project_measures.metric_id, project_measures.value " +
-                                                                                           "  from " +
-                                                                                           "    projects " +
-                                                                                           "      left join snapshots on " +
-                                                                                           "        projects.uuid = snapshots.component_uuid " +
-                                                                                           "        and snapshots.build_date >= 1564628400000 " +
-                                                                                           "      left join project_measures on " +
-                                                                                           "        project_measures.component_uuid = snapshots.component_uuid and " +
-                                                                                           "        project_measures.analysis_uuid = snapshots.uuid and " +
-                                                                                           "        project_measures.metric_id in (1, 37, 39, 41) " +
-                                                                                           " where projects.id = " + engproject.sonar_id +
-                                                                                           "   and projects.tags like '%#saj6%' " +
-                                                                                           " order by build_date, analysis_uuid, project_measures.metric_id ");
 
+                Console.WriteLine("Iniciando Migração de dados");
 
-                if (flagAnalise)
+                var parametros = new DynamicParameters();
+                var parametrosKaloi = new DynamicParameters();
+
+                Conexao.ConectaEng();
+                IEnumerable<EngProject> engprojects = AcessaDadosProject.DadosProjects();
+                IEnumerable<EngProjectMetrics> projectsMetrics = AcessaDadosProjectMetrics.DadosProjectMetrics();
+                Conexao.DesconectaEng();
+
+                Conexao.ConectaSonar();
+                var flagAnalise = true;
+                var flag = true;
+                string analise_id = string.Empty;
+                string analise_id2 = string.Empty;
+                foreach (var engproject in engprojects)
                 {
-                    analise_id2 = projects.FirstOrDefault().analysis_uuid;
-                }
-                flagAnalise = false;
 
+                    IEnumerable<SonarProject> projects = AcessaDadosSonar.DadosSonar(engproject.sonar_id);
 
-                foreach (var project in projects)
-                {
-                    analise_id = project.analysis_uuid;
-
-                    if (analise_id2 != analise_id)
+                    if (flagAnalise)
                     {
+                        analise_id2 = projects.FirstOrDefault().analysis_uuid;
+                    }
+                    flagAnalise = false;
+
+                    foreach (var project in projects)
+                    {
+                        analise_id = project.analysis_uuid;
+
+                        if (analise_id2 != analise_id)
+                        {
+                            if (flag)
+                            {
+                                Conexao.ConectaEng();
+                                Conexao.ConnEng.Execute("Insert into project_metrics (project_id, Executed_at, Analysis_id, coverage, lines, lines_to_cover, uncovered_lines)" +
+                                                                            " Values(@project_id, @Executed_at, @Analysis_id, @Coverage, @lines, @lines_to_cover, @uncovered_lines)", parametros);
+                                Conexao.DesconectaEng();
+                            }
+                            flag = true;
+                        }
+
+                        parametros.Add("project_id", engproject.project_id, DbType.Int32);
+                        parametros.Add("Executed_at", TimeStampToDateTime(project.build_date), DbType.DateTime);
+                        parametros.Add("Analysis_id", project.analysis_uuid, DbType.String);
+                        switch (project.metric_id)
+                        {
+                            case 1:
+                                parametros.Add("lines", project.value, DbType.VarNumeric);
+                                break;
+                            case 37:
+                                parametros.Add("coverage", project.value, DbType.VarNumeric);
+                                break;
+                            case 39:
+                                parametros.Add("lines_to_cover", project.value, DbType.VarNumeric);
+                                break;
+                            case 41:
+                                parametros.Add("uncovered_lines", project.value, DbType.VarNumeric);
+                                break;
+                        }
+                        if (project.analysis_uuid == null)
+                            flag = false;
+
+                        foreach (var projectMetric in projectsMetrics)
+                        {
+                            if ((project.analysis_uuid == projectMetric.Analysis_id) || (project.analysis_uuid == null))
+                                flag = false;
+                        }
+                        analise_id2 = project.analysis_uuid;
+                    }
+                }
+                Conexao.DesconectaSonar();
+
+
+                //=============BASE KALOI=============
+
+
+                Conexao.ConectaEng();
+                IEnumerable<EngProject> engprojects2 = AcessaDadosProject.DadosProjects();
+                IEnumerable<EngProjectKaloi> engProjectKalois = AcessaDadosProjectKaloi.DadosProjectKaloi();
+                Conexao.DesconectaEng();
+
+                flag = true;
+
+                foreach (var engproject2 in engprojects2)
+                {
+
+                    Conexao.ConectaKaloi();
+                    IEnumerable<KaloiMetrics> engKaloiMetrics = AcessaDadosKaloi.DadosKaloi(engproject2.project_id);
+                    Conexao.DesconectaKaloi();
+
+                    foreach (var engKaloiMetric in engKaloiMetrics)
+                    {
+
+                        parametrosKaloi.Add("project_id", engKaloiMetric.project_id, DbType.Int32);
+                        parametrosKaloi.Add("pipeline_id", engKaloiMetric.pipeline_id, DbType.String);
+                        parametrosKaloi.Add("metric", engKaloiMetric.metric, DbType.String);
+                        parametrosKaloi.Add("metric_date", (engKaloiMetric.metric_date), DbType.DateTime);
+                        parametrosKaloi.Add("value", engKaloiMetric.value, DbType.Int32);
+
+                        foreach (var engProjectKaloi in engProjectKalois)
+                        {
+                            if ((engKaloiMetric.project_id == engProjectKaloi.project_id) && (engKaloiMetric.pipeline_id == engProjectKaloi.pipeline_id) && (engKaloiMetric.metric_date == engProjectKaloi.metric_date))
+                            {
+                                flag = false;
+                            }
+                        }
+
                         if (flag)
                         {
                             Conexao.ConectaEng();
-                            Conexao.ConnEng.Execute("Insert into project_metrics (project_id, Executed_at, Analysis_id, coverage, lines, lines_to_cover, uncovered_lines)" +
-                                                                        " Values(@project_id, @Executed_at, @Analysis_id, @Coverage, @lines, @lines_to_cover, @uncovered_lines)", parametros);
+                            Conexao.ConnEng.Execute("insert into project_kaloi (project_id, pipeline_id, metric, metric_date, value) " +
+                                "Values(@project_id, @pipeline_id, @metric, @metric_date, @value)", parametrosKaloi);
                             Conexao.DesconectaEng();
-                            
                         }
                         flag = true;
                     }
+                }
 
-                    if (engproject.project_id == 2677)
-                        flag = flag;
+                Console.WriteLine("Finalizado Migração de dados");
+            }
+            catch (Exception)
+            {                
 
-                    parametros.Add("project_id", engproject.project_id, DbType.Int32);
-                    parametros.Add("Executed_at", TimeStampToDateTime(project.build_date), DbType.DateTime);
-                    parametros.Add("Analysis_id", project.analysis_uuid, DbType.String);
+                using (MailMessage mail = new MailMessage())
+                {
+                    mail.From = new MailAddress("engsoft12345@gmail.com");
+                    mail.To.Add("luciano.fagundes@softplan.com.br");
+                    mail.Subject = "[ERROR] Verificar aplicação de Metricas";
+                    mail.Body = "<h1>Ocorreu um erro na migração dos dados das base Sonar/Kaloi</h1>";
+                    mail.IsBodyHtml = true;
 
-                    switch (project.metric_id)
+                    using (SmtpClient smtp = new SmtpClient("smtp.gmail.com", 587))
                     {
-                        case 1:
-                            parametros.Add("lines", project.value, DbType.VarNumeric);
-                            break;
-                        case 37:
-                            parametros.Add("coverage", project.value, DbType.VarNumeric);
-                            break;
-                        case 39:
-                            parametros.Add("lines_to_cover", project.value, DbType.VarNumeric);
-                            break;
-                        case 41:
-                            parametros.Add("uncovered_lines", project.value, DbType.VarNumeric);
-                            break;
+                        smtp.Credentials = new NetworkCredential("engsoft12345@gmail.com", "agesune1");
+                        smtp.EnableSsl = true;
+                        smtp.Send(mail);
                     }
-
-                    if (project.analysis_uuid == null)
-                        flag = false;
-
-                    foreach (var projectMetric in projectsMetrics)
-                    {
-                        if ((project.analysis_uuid == projectMetric.Analysis_id) || (project.analysis_uuid == null))
-                            flag = false;
-
-                    }
-                    
-                    analise_id2 = project.analysis_uuid;
-
                 }
 
             }
-
-            Conexao.DesconectaSonar();
-            Console.WriteLine("Finalizado Migração de dados");
         }
+
 
         public static DateTime TimeStampToDateTime(Int64 timeStamp)
         {
