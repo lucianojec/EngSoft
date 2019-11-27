@@ -14,7 +14,6 @@ Global
 		{70EFD8DA-AF20-4AC4-8A40-DA95AEC363A0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{70EFD8DA-AF20-4AC4-8A40-DA95AEC363A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{70EFD8DA-AF20-4AC4-8A40-DA95AEC363A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{70EFD8DA-AF20-4AC4-8A40-DA95AEC363A0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
