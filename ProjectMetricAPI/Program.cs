@@ -90,7 +90,7 @@ namespace ProjectMetricAPI
                 }
             }
 
-            Log.Salvar();
+            Log.Salvar("MetricAPI");
         }
     }
 }
