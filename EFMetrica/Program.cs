@@ -156,6 +156,8 @@ namespace EFMetrica
                 }
 
             }
+
+            Log.Salvar("SonarKaloi");
         }
 
 
@@ -166,5 +168,7 @@ namespace EFMetrica
             dtDateTime = dtDateTime.AddMilliseconds(timeStamp).ToLocalTime();
             return dtDateTime;
         }
+
+        
     }
 }
