@@ -89,6 +89,8 @@ namespace ProjectMetricAPI
                     }
                 }
             }
+
+            Log.Salvar();
         }
     }
 }

@@ -278,6 +278,7 @@
     <Compile Include="EngProjectMetricsIntegration.cs" />
     <Compile Include="Email.cs" />
     <Compile Include="IntegrationAPI.cs" />
+    <Compile Include="Log.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
