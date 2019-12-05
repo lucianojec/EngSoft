@@ -18,7 +18,7 @@ namespace EFMetrica
                                                                                            "      left join project_measures on " +
                                                                                            "        project_measures.component_uuid = snapshots.component_uuid and " +
                                                                                            "        project_measures.analysis_uuid = snapshots.uuid and " +
-                                                                                           "        project_measures.metric_id in (1, 37, 39, 41, 99, 100, 113, 117) " +
+                                                                                           "        project_measures.metric_id in (1, 37, 39, 41, 99, 100, 113, 117, 98) " +
                                                                                            " where projects.id = " + sonarID +
                                                                                            "   and projects.tags like '%#saj6%' " +
                                                                                            " order by build_date, analysis_uuid, project_measures.metric_id ");
