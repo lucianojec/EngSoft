@@ -11,8 +11,14 @@ namespace EFMetrica
         {
             string path = System.IO.Directory.GetCurrentDirectory();
 
+            string dir = path + "/log";
+            if (!Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
 
-            string FileName = System.IO.Path.Combine(path, DateTime.Now.ToString("yyy-MM-dd-hh-mm-ss"));
+
+            string FileName = System.IO.Path.Combine(dir, DateTime.Now.ToString("yyy-MM-dd-hh-mm-ss"));
             //File.Create(FileName + ".log");
 
             FileName = FileName + Texto;

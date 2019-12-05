@@ -50,8 +50,8 @@ namespace EFMetrica
                             if (flag)
                             {
                                 Conexao.ConectaEng();
-                                Conexao.ConnEng.Execute("Insert into project_metrics (project_id, Executed_at, Analysis_id, coverage, lines, lines_to_cover, uncovered_lines)" +
-                                                                            " Values(@project_id, @Executed_at, @Analysis_id, @Coverage, @lines, @lines_to_cover, @uncovered_lines)", parametros);
+                                Conexao.ConnEng.Execute("Insert into project_metrics (project_id, Executed_at, Analysis_id, coverage, lines, lines_to_cover, uncovered_lines, major_issues, minor_issues, code_smells, vulnerabilities, critical_issues)" +
+                                                                            " Values(@project_id, @Executed_at, @Analysis_id, @Coverage, @lines, @lines_to_cover, @uncovered_lines, @major_issues, @minor_issues, @code_smells, @vulnerabilities, @critical_issues)", parametros);
                                 Conexao.DesconectaEng();
                             }
                             flag = true;
@@ -73,6 +73,21 @@ namespace EFMetrica
                                 break;
                             case 41:
                                 parametros.Add("uncovered_lines", project.value, DbType.VarNumeric);
+                                break;
+                            case 99:
+                                parametros.Add("major_issues", project.value, DbType.VarNumeric);
+                                break;
+                            case 100:
+                                parametros.Add("minor_issues", project.value, DbType.VarNumeric);
+                                break;
+                            case 113:
+                                parametros.Add("code_smells", project.value, DbType.VarNumeric);
+                                break;
+                            case 117:
+                                parametros.Add("vulnerabilities", project.value, DbType.VarNumeric);
+                                break;
+                            case 98:
+                                parametros.Add("critical_issues", project.value, DbType.VarNumeric);
                                 break;
                         }
                         if (project.analysis_uuid == null)
